@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { User, Mail, Shield, Wallet, LogOut, ChevronRight, Settings, Bell, Phone, CreditCard, Building, Landmark, Save, X, Loader2 } from 'lucide-react';
 import { PrimaryButton } from '../components/PrimaryButton';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://web-production-53688.up.railway.app/api';
 
 const Profile = () => {
     const { user, logout, isCEO, updateUser } = useAuth();

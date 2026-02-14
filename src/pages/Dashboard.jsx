@@ -7,7 +7,7 @@ import { IndianRupee, PieChart, Users, ArrowUpRight, Loader2 } from 'lucide-reac
 import { StatCard } from '../components/StatCard';
 import { ChartCard } from '../components/ChartCard';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://web-production-53688.up.railway.app/api';
 
 const growthData = [
     { year: 'Year 0', price: 1700000 },

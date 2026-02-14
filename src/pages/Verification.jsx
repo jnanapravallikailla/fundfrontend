@@ -4,7 +4,7 @@ import { ShieldCheck, Upload, CheckCircle2, Loader2, ArrowLeft, AlertCircle } fr
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useAuth } from '../context/AuthContext';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://web-production-53688.up.railway.app/api';
 
 const Verification = () => {
     const navigate = useNavigate();

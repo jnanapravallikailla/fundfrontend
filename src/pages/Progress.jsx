@@ -4,7 +4,7 @@ import { ProgressBar } from '../components/ProgressBar';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { Plus, RefreshCw, TrendingUp, Info, Activity, IndianRupee, Loader2, Minus, X, CheckCircle2 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://web-production-53688.up.railway.app/api';
 
 const Progress = () => {
     const { isCEO, user } = useAuth();
