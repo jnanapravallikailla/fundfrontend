@@ -103,7 +103,7 @@ const Profile = () => {
                                     <input
                                         type="text"
                                         value={formData.pan_number}
-                                        onChange={(e) => setFormData({ ...formData, pan_number: e.target.value.toUpperCase() })}
+                                        onChange={(e) => setFormData({ ...formData, pan_number: e.target.value?.toUpperCase() || '' })}
                                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium uppercase"
                                         placeholder="ABCDE1234F"
                                     />
@@ -153,7 +153,7 @@ const Profile = () => {
                                         <input
                                             type="text"
                                             value={formData.ifsc_code}
-                                            onChange={(e) => setFormData({ ...formData, ifsc_code: e.target.value.toUpperCase() })}
+                                            onChange={(e) => setFormData({ ...formData, ifsc_code: e.target.value?.toUpperCase() || '' })}
                                             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
                                             placeholder="HDFC0001234"
                                         />
