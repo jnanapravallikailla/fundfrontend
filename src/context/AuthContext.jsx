@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const AuthContext = createContext();
 const API_URL = import.meta.env.VITE_API_URL || 'https://web-production-53688.up.railway.app/api';
 
-export const CEO_EMAIL = "pravallika@vriksha.ai";
+export const CEO_EMAIL = "vijay@vriksha.ai";
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
