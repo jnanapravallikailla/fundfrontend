@@ -185,7 +185,7 @@ const Profile = () => {
                 <div className="h-32 bg-emerald-600 relative">
                     <div className="absolute -bottom-12 left-10 p-1 bg-white rounded-2xl shadow-lg">
                         <div className="w-24 h-24 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 font-black text-2xl border-2 border-emerald-50">
-                            {user?.full_name?.[0].toUpperCase() || user?.email?.[0].toUpperCase() || 'U'}
+                            {(user?.full_name?.[0] || user?.email?.[0] || 'U').toUpperCase()}
                         </div>
                     </div>
                 </div>
