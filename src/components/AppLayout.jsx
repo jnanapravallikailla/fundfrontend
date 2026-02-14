@@ -9,7 +9,7 @@ export const AppLayout = ({ children }) => {
     const { user, isCEO } = useAuth();
     const navigate = useNavigate();
 
-    const isProfileIncomplete = !isCEO && (user?.verification_status !== 'verified' || !user?.full_name);
+    const isProfileIncomplete = !isCEO && (!user?.full_name || !user?.phone);
 
     return (
         <div className="flex min-h-screen bg-background text-slate-900">
