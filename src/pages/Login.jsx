@@ -111,13 +111,6 @@ const Login = () => {
                             {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
                         </button>
 
-                        <div className="pt-6 w-full border-t border-slate-100 flex flex-col items-center gap-4">
-                            <p className="text-sm text-slate-400 font-medium italic">Testing Admin access? Use:</p>
-                            <div className="bg-emerald-50 px-4 py-2 rounded-xl flex items-center gap-2 border border-emerald-100">
-                                <Shield className="w-4 h-4 text-emerald-600" />
-                                <code className="text-emerald-700 font-bold text-xs">vijay@vriksha.ai</code>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
