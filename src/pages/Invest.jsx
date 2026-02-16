@@ -4,13 +4,33 @@ import { IndianRupee, Minus, Plus, ShieldCheck, ArrowRight } from 'lucide-react'
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useAuth } from '../context/AuthContext';
 
-const STOCK_PRICE = 26500;
+const API_URL = import.meta.env.VITE_API_URL || 'https://web-production-53688.up.railway.app/api';
+
 const MIN_STOCKS = 10;
 
 const Invest = () => {
     const [stockCount, setStockCount] = useState(MIN_STOCKS);
+    const [fundMetrics, setFundMetrics] = useState(null);
     const { user } = useAuth();
     const navigate = useNavigate();
+
+    React.useEffect(() => {
+        fetch(`${API_URL}/dashboard/metrics`)
+            .then(res => res.json())
+            .then(data => setFundMetrics(data))
+            .catch(err => console.error("Error fetching metrics:", err));
+    }, []);
+
+    const stockPrice = fundMetrics?.stock_price || 26500;
+    const totalAmount = stockCount * stockPrice;
+
+    const ownershipPercentage = React.useMemo(() => {
+        if (!fundMetrics?.total_stocks) return 0;
+        return (stockCount / fundMetrics.total_stocks) * 100;
+    }, [stockCount, fundMetrics]);
+
+    const handleIncrement = () => setStockCount(prev => prev + 1);
+    const handleDecrement = () => setStockCount(prev => Math.max(MIN_STOCKS, prev - 1));
 
     const handleContinue = () => {
         if (user?.verification_status === 'verified') {
@@ -19,11 +39,6 @@ const Invest = () => {
             navigate('/verification', { state: { stockCount, totalAmount } });
         }
     };
-
-    const totalAmount = stockCount * STOCK_PRICE;
-
-    const handleIncrement = () => setStockCount(prev => prev + 1);
-    const handleDecrement = () => setStockCount(prev => Math.max(MIN_STOCKS, prev - 1));
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
@@ -37,7 +52,7 @@ const Invest = () => {
                     <div className="space-y-6">
                         <div className="flex justify-between items-center pb-6 border-b border-slate-100">
                             <span className="text-slate-500 font-medium text-lg">Current Stock Price</span>
-                            <span className="text-2xl font-bold text-slate-900 italic">₹{STOCK_PRICE.toLocaleString('en-IN')}</span>
+                            <span className="text-2xl font-bold text-slate-900 italic">₹{stockPrice.toLocaleString('en-IN')}</span>
                         </div>
 
                         <div className="space-y-4">
@@ -67,10 +82,17 @@ const Invest = () => {
                         </div>
                     </div>
 
-                    <div className="mt-12 p-6 bg-slate-50 rounded-xl space-y-3">
+                    <div className="mt-12 p-6 bg-slate-50 rounded-xl space-y-4">
                         <div className="flex justify-between items-center">
-                            <span className="text-slate-500">Total Investment</span>
-                            <span className="text-2xl font-black text-emerald-700">₹{totalAmount.toLocaleString('en-IN')}</span>
+                            <span className="text-slate-500 font-medium">Total Investment</span>
+                            <span className="text-2xl font-black text-emerald-700 italic">₹{totalAmount.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-3 border-t border-slate-200">
+                            <span className="text-slate-500 font-medium text-sm">Ownership Stake</span>
+                            <div className="text-right">
+                                <span className="text-lg font-bold text-slate-900">{ownershipPercentage.toFixed(3)}%</span>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">of total fund equity</p>
+                            </div>
                         </div>
                     </div>
                 </div>

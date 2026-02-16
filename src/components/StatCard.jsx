@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const StatCard = ({ title, value, icon: Icon, trend }) => {
+export const StatCard = ({ title, value, icon: Icon, trend, description }) => {
     return (
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
             <div className="flex items-center justify-between mb-4">
@@ -15,6 +15,9 @@ export const StatCard = ({ title, value, icon: Icon, trend }) => {
             </div>
             <h3 className="text-slate-500 text-sm font-medium">{title}</h3>
             <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
+            {description && (
+                <p className="text-xs text-slate-400 mt-1">{description}</p>
+            )}
         </div>
     );
 };

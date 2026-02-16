@@ -28,9 +28,22 @@ const Progress = () => {
 
     // MODAL STATE
     const [showModal, setShowModal] = useState(false);
-    const [modalConfig, setModalConfig] = useState({ type: '', title: '', endpoint: '', value: '' });
-    const [phaseInputs, setPhaseInputs] = useState({ p1: 0, p2: 0, p3: 0 });
+    const [modalConfig, setModalConfig] = useState({ type: '', title: '', endpoint: '', value: '', date: new Date().toISOString().split('T')[0] });
+    const [phaseInputs, setPhaseInputs] = useState({ p1: 0, p2: 0, p3: 0, date: new Date().toISOString().split('T')[0] });
+    const [expenseForm, setExpenseForm] = useState({
+        title: '',
+        amount: '',
+        category: 'Infrastructure',
+        phase: 1,
+        date: new Date().toISOString().split('T')[0],
+        notes: ''
+    });
     const [submitting, setSubmitting] = useState(false);
+
+    const EXPENSE_CATEGORIES = [
+        "Land Purchase", "Infrastructure", "Plantation",
+        "Maintenance", "Travel", "Management", "Consultant"
+    ];
 
     useEffect(() => {
         fetchData();
@@ -46,15 +59,15 @@ const Progress = () => {
             const activityData = await resActivities.json();
 
             setFundState({
-                totalFundValue: metrics.total_fund_value,
-                totalStocks: metrics.total_stocks,
-                previousStockPrice: metrics.stock_price,
-                currentStockPrice: metrics.stock_price,
+                totalFundValue: metrics.total_fund_value || 0,
+                totalStocks: metrics.total_stocks || 1000,
+                previousStockPrice: metrics.stock_price || 0,
+                currentStockPrice: metrics.stock_price || 0,
                 priceSurge: 0,
                 phaseProgress: {
-                    phase1: metrics.phase1_progress || 85,
-                    phase2: metrics.phase2_progress || 40,
-                    phase3: metrics.phase3_progress || 15
+                    phase1: metrics.phase1_progress || 0,
+                    phase2: metrics.phase2_progress || 0,
+                    phase3: metrics.phase3_progress || 0
                 }
             });
             setActivities(activityData);
@@ -66,14 +79,25 @@ const Progress = () => {
     };
 
     const openModal = (type, title, endpoint) => {
+        const today = new Date().toISOString().split('T')[0];
         if (type === 'phase') {
             setPhaseInputs({
                 p1: fundState.phaseProgress.phase1,
                 p2: fundState.phaseProgress.phase2,
-                p3: fundState.phaseProgress.phase3
+                p3: fundState.phaseProgress.phase3,
+                date: today
+            });
+        } else if (type === 'expense') {
+            setExpenseForm({
+                title: '',
+                amount: '',
+                category: 'Infrastructure',
+                phase: 1,
+                date: today,
+                notes: ''
             });
         }
-        setModalConfig({ type, title, endpoint, value: '' });
+        setModalConfig({ type, title, endpoint, value: '', date: today });
         setShowModal(true);
     };
 
@@ -84,9 +108,16 @@ const Progress = () => {
         try {
             let body = {};
             if (modalConfig.type === 'phase') {
-                body = { phase1: phaseInputs.p1, phase2: phaseInputs.p2, phase3: phaseInputs.p3 };
+                body = { phase1: phaseInputs.p1, phase2: phaseInputs.p2, phase3: phaseInputs.p3, date: phaseInputs.date };
+            } else if (modalConfig.type === 'expense') {
+                body = {
+                    ...expenseForm,
+                    amount: parseFloat(expenseForm.amount),
+                    phase: parseInt(expenseForm.phase)
+                };
+                if (!body.title || !body.amount) throw new Error("Title and Amount are required");
             } else {
-                body = { amount: parseFloat(modalConfig.value) };
+                body = { amount: parseFloat(modalConfig.value), date: modalConfig.date };
                 if (isNaN(body.amount)) throw new Error("Please enter a valid amount");
             }
 
@@ -264,34 +295,132 @@ const Progress = () => {
                             <form onSubmit={handleModalSubmit} className="space-y-6">
                                 {modalConfig.type === 'phase' ? (
                                     <div className="space-y-4">
-                                        {['p1', 'p2', 'p3'].map((p, idx) => (
-                                            <div key={p} className="space-y-1">
-                                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Phase {idx + 1} Percentage</label>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {['p1', 'p2', 'p3'].map((p, idx) => (
+                                                <div key={p} className="space-y-1">
+                                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Phase {idx + 1} (%)</label>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="number"
+                                                            value={phaseInputs[p]}
+                                                            onChange={(e) => setPhaseInputs(prev => ({ ...prev, [p]: e.target.value }))}
+                                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-bold text-slate-800"
+                                                            min="0" max="100"
+                                                        />
+                                                        <span className="absolute right-3 top-2 text-slate-400 font-bold">%</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Date</label>
+                                                <input
+                                                    type="date"
+                                                    value={phaseInputs.date}
+                                                    onChange={(e) => setPhaseInputs(prev => ({ ...prev, date: e.target.value }))}
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-800"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : modalConfig.type === 'expense' ? (
+                                    <div className="space-y-4">
+                                        {/* Title */}
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Expense Title</label>
+                                            <input
+                                                type="text"
+                                                value={expenseForm.title}
+                                                onChange={(e) => setExpenseForm({ ...expenseForm, title: e.target.value })}
+                                                placeholder="e.g. Fencing Material"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium text-slate-800"
+                                            />
+                                        </div>
+
+                                        {/* Amount & Date */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Amount</label>
                                                 <div className="relative">
+                                                    <span className="absolute left-3 top-3 text-slate-400 font-bold">₹</span>
                                                     <input
                                                         type="number"
-                                                        value={phaseInputs[p]}
-                                                        onChange={(e) => setPhaseInputs(prev => ({ ...prev, [p]: e.target.value }))}
-                                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-bold text-slate-800"
-                                                        min="0" max="100"
+                                                        value={expenseForm.amount}
+                                                        onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-7 pr-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-800"
                                                     />
-                                                    <span className="absolute right-4 top-3.5 text-slate-400 font-bold">%</span>
                                                 </div>
                                             </div>
-                                        ))}
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Date</label>
+                                                <input
+                                                    type="date"
+                                                    value={expenseForm.date}
+                                                    onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium text-slate-800"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Category & Phase */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Category</label>
+                                                <select
+                                                    value={expenseForm.category}
+                                                    onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium text-slate-800"
+                                                >
+                                                    {EXPENSE_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Phase</label>
+                                                <select
+                                                    value={expenseForm.phase}
+                                                    onChange={(e) => setExpenseForm({ ...expenseForm, phase: e.target.value })}
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium text-slate-800"
+                                                >
+                                                    <option value={1}>Phase 1</option>
+                                                    <option value={2}>Phase 2</option>
+                                                    <option value={3}>Phase 3</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {/* Notes */}
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Notes (Optional)</label>
+                                            <textarea
+                                                rows="2"
+                                                value={expenseForm.notes}
+                                                onChange={(e) => setExpenseForm({ ...expenseForm, notes: e.target.value })}
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium text-slate-800 resize-none"
+                                            />
+                                        </div>
                                     </div>
                                 ) : (
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Transaction Amount (INR)</label>
-                                        <div className="relative">
-                                            <div className="absolute left-4 top-3.5 text-slate-400 font-bold">₹</div>
+                                    <div className="space-y-4">
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Transaction Amount (INR)</label>
+                                            <div className="relative">
+                                                <div className="absolute left-4 top-3.5 text-slate-400 font-bold">₹</div>
+                                                <input
+                                                    autoFocus
+                                                    type="number"
+                                                    value={modalConfig.value}
+                                                    onChange={(e) => setModalConfig(prev => ({ ...prev, value: e.target.value }))}
+                                                    placeholder="0.00"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-4 py-4 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-bold text-xl text-slate-800"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Transaction Date</label>
                                             <input
-                                                autoFocus
-                                                type="number"
-                                                value={modalConfig.value}
-                                                onChange={(e) => setModalConfig(prev => ({ ...prev, value: e.target.value }))}
-                                                placeholder="0.00"
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-4 py-4 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-bold text-xl text-slate-800"
+                                                type="date"
+                                                value={modalConfig.date}
+                                                onChange={(e) => setModalConfig(prev => ({ ...prev, date: e.target.value }))}
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium text-slate-800"
                                             />
                                         </div>
                                     </div>

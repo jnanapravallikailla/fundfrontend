@@ -2,21 +2,42 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CreditCard, ShieldCheck, IndianRupee, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { useAuth } from '../context/AuthContext';
 
 const Payment = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const investment = location.state || { stockCount: 10, totalAmount: 265000 };
 
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
 
-    const handlePayment = () => {
+    const handlePayment = async () => {
         setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
+        try {
+            const API_URL = import.meta.env.VITE_API_URL || 'https://web-production-53688.up.railway.app/api';
+            const res = await fetch(`${API_URL}/invest/purchase?email=${user?.email}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    stock_count: investment.stockCount,
+                    total_amount: investment.totalAmount
+                })
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.detail || 'Purchase failed');
+            }
+
             setSuccess(true);
-        }, 2500);
+        } catch (err) {
+            console.error("Payment Error:", err);
+            alert(`Payment Failed: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
     };
 
     if (success) {

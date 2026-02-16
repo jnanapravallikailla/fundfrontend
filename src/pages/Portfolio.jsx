@@ -25,9 +25,28 @@ const formatCurrency = (value) =>
         maximumFractionDigits: 0,
     }).format(value);
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://web-production-53688.up.railway.app/api';
+
 const Portfolio = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const [portfolioData, setPortfolioData] = React.useState(null);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        if (user?.email && user?.isInvestor) {
+            fetch(`${API_URL}/portfolio?email=${user.email}`)
+                .then(res => res.json())
+                .then(data => {
+                    setPortfolioData(data);
+                    setLoading(false);
+                })
+                .catch(err => {
+                    console.error("Portfolio Error:", err);
+                    setLoading(false);
+                });
+        }
+    }, [user]);
 
     if (!user?.isInvestor) {
         return (
@@ -46,6 +65,29 @@ const Portfolio = () => {
         );
     }
 
+    const totalStocks = portfolioData?.total_stocks || 0;
+    const fundTotalStocks = portfolioData?.fund_total_stocks || 1000;
+    const ownershipPerc = (totalStocks / fundTotalStocks) * 100;
+    const currentValue = portfolioData?.total_portfolio_value || 0;
+
+    // Transform history into cumulative growth chart data
+    const growthTimeline = React.useMemo(() => {
+        if (!portfolioData?.history || portfolioData.history.length === 0) return [];
+
+        // Sort history by date to ensure line moves forward
+        const sorted = [...portfolioData.history].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+        let runningTotal = 0;
+        return sorted.map(item => {
+            const date = new Date(item.created_at);
+            runningTotal += (item.stock_count * (portfolioData.stock_price || 26500));
+            return {
+                month: date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+                value: runningTotal
+            };
+        });
+    }, [portfolioData]);
+
     return (
         <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -62,26 +104,26 @@ const Portfolio = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <StatCard
                     title="Stocks Owned"
-                    value="12"
+                    value={totalStocks.toString()}
                     icon={PieChart}
                 />
                 <StatCard
                     title="Ownership %"
-                    value="1.2%"
+                    value={`${ownershipPerc.toFixed(2)}%`}
                     icon={TrendingUp}
                 />
                 <StatCard
                     title="Current Value"
-                    value="₹3,18,000"
+                    value={formatCurrency(currentValue)}
                     icon={IndianRupee}
-                    trend={{ value: "+₹53K", positive: true }}
+                    trend={{ value: "Live", positive: true }}
                 />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <ChartCard title="Total Growth Track" className="lg:col-span-2">
                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={portfolioGrowthData}>
+                        <LineChart data={growthTimeline}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                             <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
                             <YAxis
@@ -95,7 +137,7 @@ const Portfolio = () => {
                                 formatter={(value) => formatCurrency(value)}
                             />
                             <Line
-                                type="monotone"
+                                type="stepAfter"
                                 dataKey="value"
                                 stroke="#16a34a"
                                 strokeWidth={4}
@@ -112,22 +154,24 @@ const Portfolio = () => {
                         <h3 className="font-bold text-slate-800 uppercase text-xs tracking-widest">Recent Activity</h3>
                     </div>
                     <div className="flex-1 space-y-6">
-                        {[
-                            { type: 'Purchase', date: 'Feb 10, 2026', amount: '₹2,65,000', units: '10 Units', positive: true },
-                            { type: 'Price Surge', date: 'Jan 15, 2026', amount: '+₹12,400', units: 'Valuation', positive: true },
-                            { type: 'Initial', date: 'Dec 01, 2025', amount: '₹53,000', units: '2 Units', positive: true },
-                        ].map((activity, i) => (
-                            <div key={i} className="flex justify-between items-start">
-                                <div className="space-y-1">
-                                    <p className="text-sm font-bold text-slate-900 italic">{activity.type}</p>
-                                    <p className="text-xs text-slate-400 font-medium">{activity.date}</p>
+                        {(!portfolioData?.history || portfolioData.history.length === 0) ? (
+                            <p className="text-sm text-slate-400 italic">No recent transactions</p>
+                        ) : (
+                            portfolioData.history.map((activity, i) => (
+                                <div key={i} className="flex justify-between items-start">
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-bold text-slate-900 italic">Purchase</p>
+                                        <p className="text-xs text-slate-400 font-medium">
+                                            {new Date(activity.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                        </p>
+                                    </div>
+                                    <div className="text-right space-y-1">
+                                        <p className="text-sm font-bold text-emerald-600">{formatCurrency(activity.amount_paid)}</p>
+                                        <p className="text-[10px] text-slate-400 uppercase font-black tracking-tighter">{activity.stock_count} Units</p>
+                                    </div>
                                 </div>
-                                <div className="text-right space-y-1">
-                                    <p className={`text-sm font-bold ${activity.positive ? 'text-emerald-600' : 'text-slate-900'}`}>{activity.amount}</p>
-                                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-tighter">{activity.units}</p>
-                                </div>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                     <button className="w-full mt-6 py-3 text-sm font-bold text-slate-500 hover:text-primary transition-colors border-t border-slate-50">
                         View All Transactions
