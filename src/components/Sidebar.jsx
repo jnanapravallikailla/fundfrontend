@@ -22,7 +22,7 @@ export const Sidebar = () => {
     const { isCEO } = useAuth();
 
     return (
-        <aside className="w-64 bg-white border-r border-slate-200 h-screen sticky top-0 flex flex-col">
+        <aside className="hidden md:flex w-64 bg-white border-r border-slate-200 h-screen sticky top-0 flex-col">
             <div className="p-6 flex items-center gap-3 border-b border-slate-50">
                 <div className="bg-emerald-100 p-2 rounded-lg">
                     <Sprout className="w-6 h-6 text-primary" />
