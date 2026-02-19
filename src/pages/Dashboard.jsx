@@ -360,22 +360,37 @@ const Dashboard = () => {
                     <p className="text-xs text-slate-400 mb-6 -mt-4">Current completion status of modular farm infrastructure phases.</p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 p-4">
                         {[
-                            { name: 'Phase 1', color: 'bg-emerald-500', value: phaseProgress.p1 },
-                            { name: 'Phase 2', color: 'bg-indigo-500', value: phaseProgress.p2 },
-                            { name: 'Phase 3', color: 'bg-rose-500', value: phaseProgress.p3 },
+                            { name: 'Phase 1', color: 'bg-emerald-500', value: phaseProgress.p1, start: 'March 1', end: 'June 30' },
+                            { name: 'Phase 2', color: 'bg-indigo-500', value: phaseProgress.p2, start: 'July 1', end: 'August 31' },
+                            { name: 'Phase 3', color: 'bg-rose-500', value: phaseProgress.p3, start: 'September 1', end: 'October 31' },
                         ].map((phase) => (
-                            <div key={phase.name} className="space-y-3">
+                            <div key={phase.name} className="space-y-3 group cursor-help transition-all pt-2 pb-6">
                                 <div className="flex justify-between items-center">
                                     <span className="font-semibold text-slate-700">{phase.name}</span>
                                     <span className="text-sm font-bold text-slate-900 bg-slate-50 px-2 py-1 rounded-md">{phase.value}%</span>
                                 </div>
-                                <div className="h-4 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                                <div className="relative h-4 bg-slate-100 rounded-full">
+                                    {/* Progress Fill */}
                                     <div
                                         className={`h-full ${phase.color} transition-all duration-1000 ease-out rounded-full shadow-sm`}
                                         style={{ width: `${phase.value}%` }}
                                     />
+
+                                    {/* Timeline Markers */}
+                                    <div className="absolute -bottom-6 left-0 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0">
+                                        <div className="flex flex-col items-start">
+                                            <div className="w-0.5 h-2 bg-indigo-400 mb-1" />
+                                            <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-tighter whitespace-nowrap">{phase.start}</span>
+                                        </div>
+                                    </div>
+                                    <div className="absolute -bottom-6 right-0 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0 text-right">
+                                        <div className="flex flex-col items-end">
+                                            <div className="w-0.5 h-2 bg-indigo-400 mb-1" />
+                                            <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-tighter whitespace-nowrap">{phase.end}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider pt-2">
                                     {phase.value === 100 ? 'Fully Completed' : phase.value > 0 ? 'In Development' : 'Scheduled'}
                                 </p>
                             </div>

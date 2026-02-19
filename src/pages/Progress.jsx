@@ -169,16 +169,22 @@ const Progress = () => {
                         label="Phase 1: Land Acquisition & Setup"
                         progress={fundState.phaseProgress.phase1}
                         status={`${fundState.phaseProgress.phase1}% milestones reached`}
+                        startDate="March 1"
+                        endDate="June 30"
                     />
                     <ProgressBar
                         label="Phase 2: Plantation"
                         progress={fundState.phaseProgress.phase2}
                         status={`${fundState.phaseProgress.phase2}% of plantation completed`}
+                        startDate="July 1"
+                        endDate="August 31"
                     />
                     <ProgressBar
                         label="Phase 3: Maintenance"
                         progress={fundState.phaseProgress.phase3}
                         status={`Irrigation and upkeep at ${fundState.phaseProgress.phase3}%`}
+                        startDate="September 1"
+                        endDate="October 31"
                     />
                 </div>
 
