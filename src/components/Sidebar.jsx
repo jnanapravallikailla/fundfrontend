@@ -11,7 +11,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 const menuItems = [
-    { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/progress', icon: Sprout, label: 'Progress' },
     { path: '/invest', icon: Wallet, label: 'Invest' },
     { path: '/portfolio', icon: Briefcase, label: 'Portfolio' },

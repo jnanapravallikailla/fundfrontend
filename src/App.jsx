@@ -13,6 +13,9 @@ const Payment = lazy(() => import('./pages/Payment'));
 const Portfolio = lazy(() => import('./pages/Portfolio'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Login = lazy(() => import('./pages/Login'));
+const FarmLanding = lazy(() => import('./pages/FarmLanding'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const Landing = lazy(() => import('./pages/Landing'));
 
 const LoadingFallback = () => (
     <div className="flex items-center justify-center h-[60vh]">
@@ -34,9 +37,12 @@ function App() {
         <AuthProvider>
             <Suspense fallback={<LoadingFallback />}>
                 <Routes>
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/topography-view" element={<FarmLanding />} />
+                    <Route path="/old-landing" element={<Landing />} />
                     <Route path="/login" element={<Login />} />
 
-                    <Route path="/" element={
+                    <Route path="/dashboard" element={
                         <ProtectedRoute>
                             <Dashboard />
                         </ProtectedRoute>
