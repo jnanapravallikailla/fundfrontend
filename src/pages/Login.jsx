@@ -57,7 +57,7 @@ const Login = () => {
                                 {isSignUp ? 'Join FarmFund' : 'Welcome Back'}
                             </h1>
                             <p className="text-slate-500 mt-2 text-sm italic">
-                                {isSignUp ? 'Create your account to start investing' : 'Access your agricultural investment dashboard'}
+                                {isSignUp ? 'Create your account to start investing' : 'Access your estate investment dashboard'}
                             </p>
                         </div>
 

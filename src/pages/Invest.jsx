@@ -34,9 +34,9 @@ const Invest = () => {
 
     const handleContinue = () => {
         if (user?.verification_status === 'verified') {
-            navigate('/payment', { state: { stockCount, totalAmount } });
+            navigate('/payment', { state: { stockCount, totalAmount, fundId: metrics?.id } });
         } else {
-            navigate('/verification', { state: { stockCount, totalAmount } });
+            navigate('/verification', { state: { stockCount, totalAmount, fundId: metrics?.id } });
         }
     };
 
@@ -102,7 +102,7 @@ const Invest = () => {
                         <div className="p-3 bg-white/10 rounded-xl w-fit">
                             <ShieldCheck className="w-8 h-8" />
                         </div>
-                        <h3 className="text-2xl font-bold leading-tight">Secure Your Spot in Agriculture</h3>
+                        <h3 className="text-2xl font-bold leading-tight">Secure Your Spot in Premium Estates</h3>
                         <ul className="space-y-4 opacity-90">
                             <li className="flex gap-3">
                                 <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] shrink-0 mt-1">✓</div>

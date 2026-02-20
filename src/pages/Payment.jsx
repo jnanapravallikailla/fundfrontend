@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 const Payment = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const investment = location.state || { stockCount: 10, totalAmount: 265000 };
+    const investment = location.state || { stockCount: 10, totalAmount: 265000, fundId: null };
 
     const { user } = useAuth();
     const [loading, setLoading] = useState(false);
@@ -17,12 +17,14 @@ const Payment = () => {
         setLoading(true);
         try {
             const API_URL = import.meta.env.VITE_API_URL || 'https://web-production-53688.up.railway.app/api';
-            const res = await fetch(`${API_URL}/invest/purchase?email=${user?.email}`, {
+            const res = await fetch(`${API_URL}/invest/purchase`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     stock_count: investment.stockCount,
-                    total_amount: investment.totalAmount
+                    total_amount: investment.totalAmount,
+                    email: user?.email,
+                    fund_id: investment.fundId
                 })
             });
 

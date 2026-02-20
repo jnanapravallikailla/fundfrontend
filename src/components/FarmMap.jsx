@@ -55,7 +55,7 @@ const farmSections = {
     }
 };
 
-const FarmMap = ({ onFeatureClick, showTooltip = true }) => {
+const FarmMap = ({ onFeatureClick, showTooltip = true, backgroundImage = "/image.png" }) => {
     const [hoveredId, setHoveredId] = useState(null);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [scale, setScale] = useState(1);
@@ -145,7 +145,7 @@ const FarmMap = ({ onFeatureClick, showTooltip = true }) => {
                 transition={{ type: 'spring', stiffness: 300, damping: 35, mass: 0.5 }}
             >
                 <svg viewBox="0 0 1600 900" className="w-full h-full object-cover" preserveAspectRatio="xMidYMid slice">
-                    <image href="/image.png" width="1600" height="900" preserveAspectRatio="xMidYMid slice" />
+                    <image href={backgroundImage} width="1600" height="900" preserveAspectRatio="xMidYMid slice" />
 
                     {/* Interactive Areas */}
                     <g>

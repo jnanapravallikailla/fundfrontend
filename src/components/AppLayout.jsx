@@ -60,9 +60,8 @@ const MobileNav = () => {
     const location = useLocation();
 
     const items = [
-        { path: '/', icon: LayoutGrid, label: 'Home' },
+        { path: '/dashboard', icon: LayoutGrid, label: 'Home' },
         { path: '/progress', icon: Sprout, label: 'Project' },
-        { path: '/invest', icon: Wallet, label: 'Invest' },
         { path: '/portfolio', icon: Briefcase, label: 'Portfolio' },
         { path: '/profile', icon: UserCircle, label: 'Me' }
     ];
