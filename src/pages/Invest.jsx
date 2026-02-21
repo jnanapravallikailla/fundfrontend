@@ -34,9 +34,9 @@ const Invest = () => {
 
     const handleContinue = () => {
         if (user?.verification_status === 'verified') {
-            navigate('/payment', { state: { stockCount, totalAmount, fundId: metrics?.id } });
+            navigate('/payment', { state: { stockCount, totalAmount, fundId: fundMetrics?.id } });
         } else {
-            navigate('/verification', { state: { stockCount, totalAmount, fundId: metrics?.id } });
+            navigate('/verification', { state: { stockCount, totalAmount, fundId: fundMetrics?.id } });
         }
     };
 

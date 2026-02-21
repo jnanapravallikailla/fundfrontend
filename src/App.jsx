@@ -8,6 +8,7 @@ import { Loader2 } from 'lucide-react';
 const Dashboard = lazy(() => import('./pages/FundsOverview'));
 const FundDashboard = lazy(() => import('./pages/FundDashboard'));
 const Progress = lazy(() => import('./pages/Progress'));
+const Invest = lazy(() => import('./pages/Invest'));
 const Verification = lazy(() => import('./pages/Verification'));
 const Payment = lazy(() => import('./pages/Payment'));
 const Portfolio = lazy(() => import('./pages/Portfolio'));
@@ -60,6 +61,11 @@ function App() {
                         </ProtectedRoute>
                     } />
 
+                    <Route path="/invest" element={
+                        <ProtectedRoute>
+                            <Invest />
+                        </ProtectedRoute>
+                    } />
 
                     <Route path="/verification" element={
                         <ProtectedRoute>

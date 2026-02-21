@@ -53,10 +53,25 @@ const formatRoadmapDate = (dateStr) => {
     return dateStr;
 };
 
+const AdminActionCard = ({ icon: Icon, title, color, onClick }) => {
+    const colors = {
+        emerald: 'hover:border-emerald-500 hover:bg-emerald-50/30 text-emerald-600',
+        amber: 'hover:border-amber-500 hover:bg-amber-50/30 text-amber-600',
+        blue: 'hover:border-blue-500 hover:bg-blue-50/30 text-blue-600',
+        indigo: 'hover:border-indigo-500 hover:bg-indigo-50/30 text-indigo-600'
+    };
+    return (
+        <button onClick={onClick} className={`p-8 bg-white border rounded-[32px] text-left transition-all group shadow-sm hover:shadow-xl hover:-translate-y-1 ${colors[color]}`}>
+            <Icon className="mb-4 transition-transform group-hover:scale-110" size={32} />
+            <h5 className="font-black text-xs uppercase tracking-widest">{title}</h5>
+        </button>
+    );
+};
+
 const FundDashboard = () => {
     const navigate = useNavigate();
     const { fundId } = useParams();
-    const { user, isCEO } = useAuth();
+    const { user, isCEO, isManager, assignedFund } = useAuth();
     const [metrics, setMetrics] = useState(null);
     const [expenseData, setExpenseData] = useState(null);
     const [performanceData, setPerformanceData] = useState(null);
@@ -67,6 +82,7 @@ const FundDashboard = () => {
     const [activeModal, setActiveModal] = useState(null); // 'invest', 'expense', 'growth', 'profit', 'phase'
     const [processing, setProcessing] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
+    const [showActionBar, setShowActionBar] = useState(false);
 
     // Mock data fallback for the institutional 5-year graph
     const institutionalGraphData = [
@@ -109,6 +125,16 @@ const FundDashboard = () => {
     useEffect(() => {
         fetchData();
     }, [fundId]);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+            // Show only when user has scrolled significantly (past 70% of page)
+            setShowActionBar(scrollPercent > 70);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     const handleAction = async (endpoint, payload) => {
         setProcessing(true);
@@ -225,73 +251,82 @@ const FundDashboard = () => {
                 </div>
             </header>
 
+            {(isCEO || (isManager && fundId === assignedFund)) && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-2">
+                    <AdminActionCard icon={TrendingUp} title="Update Land Value" color="emerald" onClick={() => setActiveModal('growth')} />
+                    <AdminActionCard icon={Briefcase} title="Declare Profit" color="amber" onClick={() => setActiveModal('profit')} />
+                    <AdminActionCard icon={Target} title="ARR Growth Rate" color="blue" onClick={() => setActiveModal('arr')} />
+                    <AdminActionCard icon={Activity} title="Phase Progress" color="indigo" onClick={() => setActiveModal('phase')} />
+                </div>
+            )}
+
             {/* PREMIUM METRICS BOARD */}
             <section className="grid grid-cols-1 xl:grid-cols-3 gap-6 px-2">
                 {/* MODULE 1: INVESTMENT TIMELINE */}
-                <div className="bg-slate-900 rounded-[40px] p-8 shadow-2xl shadow-slate-900/20 flex flex-col justify-between space-y-8 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-blue-500/20 transition-colors" />
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-white/10 text-blue-400 rounded-2xl border border-white/5"><Timer size={20} /></div>
-                        <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Investment Timeline</h4>
+                <div className="bg-white border border-slate-100 rounded-[40px] p-8 shadow-xl shadow-slate-200/20 flex flex-col gap-6 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-blue-100/50 transition-colors" />
+                    <div className="flex items-center gap-3 relative z-10">
+                        <div className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl border border-blue-100"><Timer size={20} /></div>
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Investment Timeline</h4>
                     </div>
                     <div className="grid grid-cols-3 gap-4 relative z-10">
                         <div className="space-y-1">
-                            <p className="text-[10px] font-bold text-white/30 uppercase">Entry</p>
-                            <p className="text-sm font-black text-white">{metrics?.entry_date || 'Mar 2024'}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Entry</p>
+                            <p className="text-sm font-black text-slate-900">{metrics?.entry_date || 'Mar 2024'}</p>
                         </div>
                         <div className="space-y-1">
-                            <p className="text-[10px] font-bold text-white/30 uppercase">Exit</p>
-                            <p className="text-sm font-black text-white">{metrics?.exit_date || 'Mar 2029'}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Exit</p>
+                            <p className="text-sm font-black text-slate-900">{metrics?.exit_date || 'Mar 2029'}</p>
                         </div>
                         <div className="space-y-1">
-                            <p className="text-[10px] font-bold text-emerald-500 uppercase">Phase</p>
-                            <p className="text-sm font-black text-emerald-400 italic uppercase tracking-tighter">{currentPhaseLabel}</p>
+                            <p className="text-[10px] font-bold text-emerald-600 uppercase">Phase</p>
+                            <p className="text-sm font-black text-emerald-600 italic uppercase tracking-tighter">{currentPhaseLabel}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* MODULE 2: ASSET FINANCIALS */}
-                <div className="bg-slate-900 rounded-[40px] p-8 shadow-2xl shadow-slate-900/20 flex flex-col justify-between space-y-8 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-emerald-500/20 transition-colors" />
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-white/10 text-emerald-400 rounded-2xl border border-white/5"><IndianRupee size={20} /></div>
-                        <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Financial Standing</h4>
+                <div className="bg-white border border-slate-100 rounded-[40px] p-8 shadow-xl shadow-slate-200/20 flex flex-col gap-6 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50/50 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-emerald-100/50 transition-colors" />
+                    <div className="flex items-center gap-3 relative z-10">
+                        <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100"><IndianRupee size={20} /></div>
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Financial Standing</h4>
                     </div>
                     <div className="grid grid-cols-3 gap-4 relative z-10">
                         <div className="space-y-1">
-                            <p className="text-[10px] font-bold text-white/30 uppercase">Fund Target</p>
-                            <p className="text-sm font-black text-white">{formatCurrency(metrics?.total_capital || 26500000)}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Fund Target</p>
+                            <p className="text-sm font-black text-slate-900">{formatCurrency(metrics?.total_capital || 26500000)}</p>
                         </div>
                         <div className="space-y-1">
-                            <p className="text-[10px] font-bold text-white/30 uppercase">Raised</p>
-                            <p className="text-sm font-black text-emerald-400">{formatCurrency(metrics?.total_raised_capital || 0)}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Raised</p>
+                            <p className="text-sm font-black text-emerald-600">{formatCurrency(metrics?.total_raised_capital || 0)}</p>
                         </div>
-                        <div className="space-y-1 border-l border-white/10 pl-4">
+                        <div className="space-y-1 border-l border-slate-100 pl-4">
                             <p className="text-[10px] font-bold text-emerald-500 uppercase">Asset Value</p>
-                            <p className="text-sm font-black text-white">{formatCurrency(metrics?.total_fund_value || 0)}</p>
+                            <p className="text-sm font-black text-slate-900">{formatCurrency(metrics?.total_fund_value || 0)}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* MODULE 3: ESTATE INVENTORY */}
-                <div className="bg-slate-900 rounded-[40px] p-8 shadow-2xl shadow-slate-900/20 flex flex-col justify-between space-y-8 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-purple-500/20 transition-colors" />
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-white/10 text-purple-400 rounded-2xl border border-white/5"><PieChart size={20} /></div>
-                        <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Estate Inventory</h4>
+                <div className="bg-white border border-slate-100 rounded-[40px] p-8 shadow-xl shadow-slate-200/20 flex flex-col gap-6 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-purple-50/50 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-purple-100/50 transition-colors" />
+                    <div className="flex items-center gap-3 relative z-10">
+                        <div className="p-2.5 bg-purple-50 text-purple-600 rounded-2xl border border-purple-100"><PieChart size={20} /></div>
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estate Inventory</h4>
                     </div>
                     <div className="grid grid-cols-3 gap-4 relative z-10">
                         <div className="space-y-1">
-                            <p className="text-[10px] font-bold text-white/30 uppercase">Inventory</p>
-                            <p className="text-sm font-black text-white">{metrics?.total_stocks || 0} Stocks</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Inventory</p>
+                            <p className="text-sm font-black text-slate-900">{metrics?.total_stocks || 0} Stocks</p>
                         </div>
                         <div className="space-y-1">
-                            <p className="text-[10px] font-bold text-white/30 uppercase">Stock Price</p>
-                            <p className="text-sm font-black text-white">{formatCurrency(metrics?.stock_price)}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Stock Price</p>
+                            <p className="text-sm font-black text-slate-900">{formatCurrency(metrics?.stock_price)}</p>
                         </div>
                         <div className="space-y-1">
                             <p className="text-[10px] font-bold text-blue-500 uppercase">Total Area</p>
-                            <p className="text-sm font-black text-white">12.5 Acres</p>
+                            <p className="text-sm font-black text-slate-900">{metrics?.total_area || '12.5 Acres'}</p>
                         </div>
                     </div>
                 </div>
@@ -341,73 +376,115 @@ const FundDashboard = () => {
                         </div>
                     </ChartCard>
 
-                    {/* CAPITAL GROWTH & PERFORMANCE GRAPH */}
-                    <ChartCard title="Capital Growth & Performance Analytics" className="h-[500px]">
-                        <div className="flex items-center gap-6 mb-8 mt-2 overflow-x-auto pb-2 no-scrollbar">
-                            <div className="flex items-center gap-2">
+                    {/* PERFORMANCE ANALYTICS GRID */}
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        <ChartCard title="Capital Growth & Performance" className="h-[500px]">
+                            <div className="flex items-center gap-6 mb-8 mt-2 overflow-x-auto pb-2 no-scrollbar">
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <div className="w-3 h-3 rounded-full bg-blue-500" />
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Deployment</span>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <div className="w-3 h-3 rounded-full bg-amber-500" />
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Land Growth</span>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Profits</span>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <div className="w-3 h-3 rounded-full bg-indigo-500" />
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Funding Progress</span>
+                                </div>
+                            </div>
+                            <ResponsiveContainer width="100%" height="75%" style={{ marginLeft: '-15px' }}>
+                                <ComposedChart data={capitalGrowth} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                    <XAxis
+                                        dataKey="date"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                                        dy={10}
+                                        tickFormatter={(val) => val ? new Date(val).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}
+                                    />
+                                    <YAxis
+                                        yAxisId="left"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                                        tickFormatter={(val) => `₹${(val / 100000).toFixed(1)}L`}
+                                    />
+                                    <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fill: '#6366f1', fontSize: 10, fontWeight: 700 }} tickFormatter={(val) => `${val}%`} />
+                                    <Tooltip
+                                        contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)' }}
+                                        formatter={(value, name) => {
+                                            const labels = {
+                                                deployment: 'Institutional Deployment',
+                                                capital: 'Raised Capital',
+                                                landAppreciation: 'Land Growth',
+                                                profits: 'Realized Profits',
+                                                progress: 'Funding Progress'
+                                            };
+                                            return [name === 'progress' ? `${value}%` : formatCurrency(value), labels[name] || name];
+                                        }}
+                                    />
+                                    <Line yAxisId="left" type="monotone" dataKey="deployment" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} name="deployment" />
+                                    <Line yAxisId="left" type="monotone" dataKey="landAppreciation" stroke="#f59e0b" strokeWidth={2} dot={false} name="landAppreciation" />
+                                    <Line yAxisId="left" type="monotone" dataKey="profits" stroke="#10b981" strokeWidth={2} dot={false} name="profits" />
+                                    <Line yAxisId="right" type="monotone" dataKey="progress" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1' }} name="progress" />
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        </ChartCard>
+
+                        <ChartCard title="ARR Strategic Growth Trend" className="h-[500px]">
+                            <div className="flex items-center gap-2 mb-8 mt-2">
                                 <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total Fund Value</span>
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Projected Growth (Y0-Y5)</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-blue-500" />
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Land Appreciation</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-amber-500" />
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Realized Profits</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-rose-500" />
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Cumulative Deployment</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-indigo-500" />
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Progress %</span>
-                            </div>
-                        </div>
-                        <ResponsiveContainer width="100%" height="90%" style={{ marginLeft: '-15px' }}>
-                            <ComposedChart
-                                data={capitalGrowth.length > 0 ? capitalGrowth : institutionalGraphData}
-                                margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
-                            >
-                                <defs>
-                                    <linearGradient id="valGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
-                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                <XAxis
-                                    dataKey={capitalGrowth.length > 0 ? "date" : "year"}
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }}
-                                    dy={10}
-                                    padding={{ left: 0, right: 0 }}
-                                    tickFormatter={(val) => capitalGrowth.length > 0 ? new Date(val).toLocaleDateString('en-IN', { month: 'short' }) : val}
-                                />
-                                <YAxis
-                                    yAxisId="left"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }}
-                                    domain={[0, dataMax => dataMax > 0 ? dataMax * 1.2 : 100000]}
-                                    tickFormatter={(val) => `₹${(val / 100000).toFixed(1)}L`}
-                                />
-                                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} tickFormatter={(val) => `${val}%`} />
-                                <Tooltip
-                                    labelFormatter={(label) => capitalGrowth.length > 0 ? new Date(label).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : label}
-                                    contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)', padding: '20px' }}
-                                    formatter={(value, name) => [name === 'progress' ? `${value}%` : formatCurrency(value), name.replace(/([A-Z])/g, ' $1').toUpperCase()]}
-                                />
-                                <Area yAxisId="left" type="monotone" dataKey="fundValue" fill="url(#valGradient)" stroke="#10b981" strokeWidth={4} />
-                                <Line yAxisId="left" type="monotone" dataKey="landAppreciation" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
-                                <Line yAxisId="left" type="monotone" dataKey="profits" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4, fill: '#f59e0b' }} strokeDasharray="5 5" />
-                                <Line yAxisId="left" type="monotone" dataKey="deployment" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4, fill: '#f43f5e' }} />
-                                <Bar yAxisId="right" dataKey="progress" fill="#6366f1" opacity={0.2} radius={[6, 6, 0, 0]} barSize={40} />
-                            </ComposedChart>
-                        </ResponsiveContainer>
-                    </ChartCard>
+                            <ResponsiveContainer width="100%" height="75%">
+                                <AreaChart data={metrics?.arr_timeline || [
+                                    { year: 'Y0', growth: 0 },
+                                    { year: 'Y1', growth: 10 },
+                                    { year: 'Y2', growth: 15 },
+                                    { year: 'Y3', growth: 22 },
+                                    { year: 'Y4', growth: 28 },
+                                    { year: 'Y5', growth: 35 }
+                                ]}>
+                                    <defs>
+                                        <linearGradient id="colorARR" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                    <XAxis
+                                        dataKey="year"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                                        tickFormatter={(val) => `${val}%`}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#fff', borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="growth"
+                                        stroke="#10b981"
+                                        strokeWidth={3}
+                                        fill="url(#colorARR)"
+                                        name="ARR Growth %"
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </ChartCard>
+                    </div>
                 </div>
 
                 {/* ASIDE PANEL */}
@@ -452,9 +529,7 @@ const FundDashboard = () => {
                                     );
                                 })}
                             </div>
-                            <button className="w-full py-4 bg-slate-100 text-slate-900 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-slate-200 transition-all active:scale-95">
-                                Download Audit Report (PDF)
-                            </button>
+
                         </div>
                     </ChartCard>
 
@@ -554,6 +629,15 @@ const FundDashboard = () => {
                                     successMsg={successMsg}
                                 />
                             )}
+                            {activeModal === 'arr' && (
+                                <ARRModal
+                                    currentData={metrics?.arr_timeline}
+                                    processing={processing}
+                                    onClose={() => setActiveModal(null)}
+                                    onSubmit={(data) => handleAction('/admin/update-arr', data)}
+                                    successMsg={successMsg}
+                                />
+                            )}
                             {activeModal === 'phase' && (
                                 <PhaseModal
                                     current={metrics}
@@ -569,48 +653,38 @@ const FundDashboard = () => {
             </AnimatePresence>
 
             {/* INVESTOR QUICK ACTION BAR */}
-            {!isCEO && (
-                <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[60] w-full max-w-lg px-4">
-                    <motion.button
-                        whileHover={{ scale: 1.02, y: -4 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => {
-                            if (user?.verification_status !== 'verified') {
-                                navigate('/verification', { state: { fundId } });
-                            } else {
-                                setActiveModal('invest');
-                            }
-                        }}
-                        className="w-full h-20 bg-slate-900 text-white rounded-full flex items-center justify-between px-10 shadow-3xl shadow-slate-900/40 border border-white/10 group overflow-hidden relative"
+            <AnimatePresence>
+                {!isCEO && showActionBar && (
+                    <motion.div
+                        initial={{ y: 100, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 100, opacity: 0 }}
+                        className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[60] w-full max-w-lg px-4"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <span className="font-black text-xs uppercase tracking-[0.2em] relative z-10">Invest Now</span>
-                        <div className="flex items-center gap-4 relative z-10">
-                            <span className="text-[10px] font-bold text-slate-400">{formatCurrency(metrics?.stock_price || 0)} / stock</span>
-                            <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/40 group-hover:rotate-45 transition-transform"><ArrowUpRight size={20} /></div>
-                        </div>
-                    </motion.button>
-                </div>
-            )}
+                        <motion.button
+                            whileHover={{ scale: 1.02, y: -4 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => {
+                                if (user?.verification_status !== 'verified') {
+                                    navigate('/verification', { state: { fundId } });
+                                } else {
+                                    // Instead of navigating to /invest, open the purchase modal directly for seamless UX
+                                    setActiveModal('invest');
+                                }
+                            }}
+                            className="w-full py-6 bg-slate-900 text-white rounded-[32px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/40 border border-white/10 flex items-center justify-center gap-4 group overflow-hidden relative"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <div className="relative z-10 flex items-center gap-4">
+                                <Activity className="text-emerald-400 group-hover:text-white" size={20} />
+                                <span>Initialize Asset Acquisition</span>
+                                <ArrowUpRight className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" size={20} />
+                            </div>
+                        </motion.button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
-    );
-};
-
-const AdminActionCard = ({ icon: Icon, title, color, onClick }) => {
-    const colors = {
-        emerald: 'text-emerald-600 border-emerald-100 hover:border-emerald-500 bg-emerald-50/30',
-        blue: 'text-blue-600 border-blue-100 hover:border-blue-500 bg-blue-50/30',
-        amber: 'text-amber-600 border-amber-100 hover:border-amber-500 bg-amber-50/30',
-        indigo: 'text-indigo-600 border-indigo-100 hover:border-indigo-500 bg-indigo-50/30'
-    };
-    return (
-        <button onClick={onClick} className={`p-8 bg-white border rounded-[32px] text-left transition-all group shadow-sm hover:shadow-xl hover:-translate-y-1 ${colors[color]}`}>
-            <div className={`p-4 rounded-2xl bg-white shadow-sm w-fit mb-6 group-hover:scale-110 transition-transform`}>
-                <Icon size={24} />
-            </div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-600 mb-1">Action Registry</p>
-            <p className="text-sm font-black text-slate-900">{title}</p>
-        </button>
     );
 };
 
@@ -731,6 +805,80 @@ const AmountModal = ({ title, icon: Icon, color, processing, onClose, onSubmit, 
                     className="w-full py-5 bg-slate-900 text-white rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50"
                 >
                     {processing ? <Loader2 className="animate-spin mx-auto" size={18} /> : 'Authorize Value Update'}
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const ARRModal = ({ currentData, processing, onClose, onSubmit, successMsg }) => {
+    const [rates, setRates] = useState({
+        Y1: '', Y2: '', Y3: '', Y4: '', Y5: ''
+    });
+
+    useEffect(() => {
+        if (currentData && currentData.length > 0) {
+            const newRates = { ...rates };
+            currentData.forEach(item => {
+                if (newRates.hasOwnProperty(item.year)) {
+                    newRates[item.year] = item.growth;
+                }
+            });
+            setRates(newRates);
+        }
+    }, [currentData]);
+
+    if (successMsg) return <SuccessState msg={successMsg} />;
+
+    const handleSubmit = () => {
+        const updates = Object.entries(rates)
+            .filter(([year, rate]) => rate !== '')
+            .map(([year, rate]) => ({
+                year,
+                growth_rate: parseFloat(rate)
+            }));
+
+        if (updates.length > 0) {
+            onSubmit({ updates });
+        }
+    };
+
+    return (
+        <div className="p-10 space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center gap-4">
+                <div className="p-4 rounded-2xl bg-blue-50 text-blue-600"><TrendingUp size={24} /></div>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Strategic ARR Update</h3>
+            </div>
+            <p className="text-slate-400 text-xs font-bold -mt-2">Configure projected Annualized Rate of Return for all timeline years.</p>
+
+            <div className="space-y-6">
+                <div className="grid grid-cols-1 gap-4">
+                    {['Y1', 'Y2', 'Y3', 'Y4', 'Y5'].map(year => (
+                        <div key={year} className="flex items-center gap-4 p-4 bg-slate-50 rounded-3xl border border-slate-100">
+                            <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center font-black text-slate-900 shadow-sm">
+                                {year}
+                            </div>
+                            <div className="flex-1 space-y-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Target Growth Rate (%)</label>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    placeholder="0.0"
+                                    className="w-full bg-transparent outline-none font-black text-xl text-blue-600"
+                                    value={rates[year]}
+                                    onChange={e => setRates({ ...rates, [year]: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <button
+                    disabled={processing}
+                    onClick={handleSubmit}
+                    className="w-full py-5 bg-slate-900 text-white rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50"
+                >
+                    {processing ? <Loader2 className="animate-spin mx-auto" size={18} /> : 'Sync All Years ARR'}
                 </button>
             </div>
         </div>

@@ -6,7 +6,7 @@ import { PrimaryButton } from '../components/PrimaryButton';
 const API_URL = import.meta.env.VITE_API_URL || 'https://web-production-53688.up.railway.app/api';
 
 const Profile = () => {
-    const { user, logout, isCEO, updateUser } = useAuth();
+    const { user, logout, isCEO, isManager, updateUser } = useAuth();
     const [isEditing, setIsEditing] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [formData, setFormData] = useState({
@@ -194,7 +194,7 @@ const Profile = () => {
                     <div className="flex justify-between items-start">
                         <div>
                             <h2 className="text-2xl font-black text-slate-900 italic">
-                                {user?.full_name || (isCEO ? 'Administrator' : 'Explorer')}
+                                {user?.full_name || (isCEO ? 'Administrator' : isManager ? 'Fund Manager' : 'Explorer')}
                             </h2>
                             <div className="flex items-center gap-2 text-slate-400 mt-1">
                                 <Mail className="w-4 h-4" />

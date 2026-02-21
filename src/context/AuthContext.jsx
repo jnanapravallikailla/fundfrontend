@@ -68,9 +68,11 @@ export const AuthProvider = ({ children }) => {
     };
 
     const isCEO = user?.email === CEO_EMAIL;
+    const isManager = user?.role === 'fund_manager';
+    const assignedFund = user?.assigned_fund;
 
     return (
-        <AuthContext.Provider value={{ user, signUp, signIn, logout, isCEO, loading, becomeInvestor, updateUser }}>
+        <AuthContext.Provider value={{ user, signUp, signIn, logout, isCEO, isManager, assignedFund, loading, becomeInvestor, updateUser }}>
             {children}
         </AuthContext.Provider>
     );

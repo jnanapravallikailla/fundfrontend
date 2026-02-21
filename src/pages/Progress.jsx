@@ -15,7 +15,7 @@ import {
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 const Progress = () => {
-    const { isCEO, user } = useAuth();
+    const { isCEO, isManager, assignedFund, user } = useAuth();
     const [selectedFundId, setSelectedFundId] = useState(null);
     const [availableFunds, setAvailableFunds] = useState([]);
     const [portfolioData, setPortfolioData] = useState(null);
@@ -71,6 +71,25 @@ const Progress = () => {
         p2End: '',
         p3Start: '',
         p3End: ''
+    });
+    const [managerForm, setManagerForm] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        assigned_fund: ''
+    });
+    const [newAssetForm, setNewAssetForm] = useState({
+        name: '',
+        location: '',
+        target_amount: '',
+        total_stocks: '',
+        stock_price: '',
+        entry_date: new Date().toISOString().split('T')[0],
+        exit_date: '',
+        phase: 'Land Acquisition',
+        land_value: '',
+        description: '',
+        blueprint_url: ''
     });
     const [submitting, setSubmitting] = useState(false);
 
@@ -216,6 +235,27 @@ const Progress = () => {
                 p3Start: fundState.p3StartDate || '',
                 p3End: fundState.p3EndDate || fundState.exitDate
             });
+        } else if (type === 'manager') {
+            setManagerForm({
+                name: '',
+                email: '',
+                phone: '',
+                assigned_fund: ''
+            });
+        } else if (type === 'asset') {
+            setNewAssetForm({
+                name: '',
+                location: '',
+                target_amount: '',
+                total_stocks: '',
+                stock_price: '',
+                entry_date: today,
+                exit_date: '',
+                phase: 'Land Acquisition',
+                land_value: '',
+                description: '',
+                blueprint_url: ''
+            });
         } else {
             setModalConfig(prev => ({ ...prev, value: '', date: today }));
         }
@@ -225,8 +265,11 @@ const Progress = () => {
 
     const handleModalSubmit = async (e) => {
         e.preventDefault();
-        if (!user?.email || !selectedFundId) {
-            alert("Identification error: Please select a fund and ensure you are logged in.");
+
+        // Block standard actions if no fund is selected
+        const isGlobalAction = ['manager', 'asset'].includes(modalConfig.type);
+        if (!user?.email || (!selectedFundId && !isGlobalAction)) {
+            alert("Identification error: Please ensure you are logged in and a fund is active.");
             return;
         }
 
@@ -265,15 +308,32 @@ const Progress = () => {
                 };
             } else if (modalConfig.type === 'roadmap') {
                 body = { roadmap: roadmapForm };
+            } else if (modalConfig.type === 'manager') {
+                body = { ...managerForm, ceo_email: user.email };
+            } else if (modalConfig.type === 'asset') {
+                body = {
+                    ...newAssetForm,
+                    target_amount: parseFloat(newAssetForm.target_amount),
+                    total_stocks: parseInt(newAssetForm.total_stocks),
+                    stock_price: parseFloat(newAssetForm.stock_price),
+                    land_value: parseFloat(newAssetForm.land_value) || 0,
+                    ceo_email: user.email
+                };
             } else {
-                body = { amount: parseFloat(modalConfig.value), date: modalConfig.date };
+                body = { amount: parseFloat(modalConfig.value), date: modalConfig.date, email: user.email, fund_id: selectedFundId };
                 if (isNaN(body.amount)) throw new Error("Please enter a valid amount");
+            }
+
+            // Ensure email and fund_id are present for standard actions
+            if (!['manager', 'asset'].includes(modalConfig.type)) {
+                if (!body.email) body.email = user.email;
+                if (!body.fund_id) body.fund_id = selectedFundId;
             }
 
             const res = await fetch(`${API_URL}/admin/${modalConfig.endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...body, email: user.email, fund_id: selectedFundId })
+                body: JSON.stringify(body)
             });
 
             if (!res.ok) {
@@ -550,8 +610,8 @@ const Progress = () => {
                     </div>
                 </div>
 
-                {/* CEO CONTROL PANEL FOR SELECTED FUND */}
-                {isCEO && (
+                {/* CONTROL PANEL FOR CEO OR ASSIGNED MANAGER */}
+                {(isCEO || (isManager && selectedFundId === assignedFund)) && (
                     <div className="space-y-6">
                         <div className="bg-slate-900 p-10 rounded-[40px] text-white shadow-2xl shadow-slate-900/40 relative overflow-hidden group">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-emerald-500/20 transition-all duration-700" />
@@ -563,7 +623,7 @@ const Progress = () => {
                                             <Activity className="w-6 h-6 text-emerald-400" />
                                         </div>
                                         <div>
-                                            <h3 className="text-xl font-black italic uppercase tracking-wider">Financial Control Center</h3>
+                                            <h3 className="text-xl font-black italic uppercase tracking-wider">{isCEO ? 'Financial Control Center' : 'Manager Operations Desk'}</h3>
                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{fundState.fundName}</p>
                                         </div>
                                     </div>
@@ -603,350 +663,483 @@ const Progress = () => {
                             </div>
                         </div>
 
-                        {/* RECENT ACTIVITY FOR SELECTED FUND */}
-                        {activities.length > 0 && (
-                            <div className="bg-white rounded-[32px] border border-slate-100 overflow-hidden shadow-sm">
-                                <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-                                    <div className="flex items-center gap-3">
-                                        <Activity className="w-5 h-5 text-slate-400" />
-                                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Validated Ledger Activity</h4>
+                        {/* FLEET & ASSET MANAGEMENT - CEO ONLY */}
+                        {isCEO && (
+                            <div className="bg-slate-50 p-10 rounded-[40px] border border-slate-200 space-y-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-emerald-100 rounded-[20px]">
+                                        <Building2 className="w-6 h-6 text-emerald-600" />
                                     </div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedFundId.slice(0, 8)}</p>
+                                    <div>
+                                        <h3 className="text-xl font-black italic uppercase tracking-wider text-slate-900">Fleet & Asset Management</h3>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CEO Restricted Operations</p>
+                                    </div>
                                 </div>
-                                <div className="divide-y divide-slate-50">
-                                    {activities.map((act, i) => (
-                                        <div key={i} className="px-8 py-6 flex items-center justify-between hover:bg-slate-50/50 transition-colors group">
-                                            <div className="flex items-center gap-5">
-                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${act.type === 'expense_added' ? 'bg-rose-50 text-rose-600' :
-                                                    act.type === 'land_value_updated' ? 'bg-emerald-50 text-emerald-600' :
-                                                        act.type === 'profit_added' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'
-                                                    }`}>
-                                                    {act.type === 'expense_added' ? <Minus size={20} /> : <Plus size={20} />}
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-black text-slate-900 uppercase italic tracking-tight">{act.type.replace(/_/g, ' ')}</p>
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                                                        {new Date(act.created_at || act.date).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            {act.amount > 0 && (
-                                                <div className="text-right">
-                                                    <p className={`text-lg font-black italic ${act.type === 'expense_added' ? 'text-rose-600' : 'text-emerald-600'}`}>
-                                                        {act.type === 'expense_added' ? '-' : '+'}{formatCurrency(act.amount)}
-                                                    </p>
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Synced</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+                                    <PrimaryButton onClick={() => openModal('manager', 'Onboard Fund Manager', 'create-manager')} className="bg-white text-slate-900 hover:bg-slate-50 py-4 rounded-2xl flex items-center justify-center gap-2 font-black italic text-xs uppercase tracking-widest border-2 border-slate-900 shadow-lg">
+                                        <Plus className="w-4 h-4" />
+                                        Onboard Fund Manager
+                                    </PrimaryButton>
+                                    <PrimaryButton onClick={() => openModal('asset', 'Initialize New Asset', 'create-fund')} className="bg-emerald-600 text-white hover:bg-emerald-500 py-4 rounded-2xl flex items-center justify-center gap-2 font-black italic text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20">
+                                        <Building2 className="w-4 h-4" />
+                                        Initialize New Fund Asset
+                                    </PrimaryButton>
                                 </div>
                             </div>
                         )}
                     </div>
                 )}
-            </div>
-
-            {/* CEO ACTION MODAL */}
-            {
-                showModal && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => !submitting && setShowModal(false)} />
-                        <div className="bg-white rounded-[40px] w-full max-w-lg overflow-hidden relative shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 border border-slate-100">
-                            <div className="p-10">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div>
-                                        <h3 className="text-2xl font-black text-slate-900 italic uppercase tracking-tight">{modalConfig.title}</h3>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
-                                                Target Asset: {fundState.fundName}
+                {/* RECENT ACTIVITY FOR SELECTED FUND */}
+                {activities.length > 0 && (
+                    <div className="bg-white rounded-[32px] border border-slate-100 overflow-hidden shadow-sm">
+                        <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                            <div className="flex items-center gap-3">
+                                <Activity className="w-5 h-5 text-slate-400" />
+                                <h4 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Validated Ledger Activity</h4>
+                            </div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedFundId.slice(0, 8)}</p>
+                        </div>
+                        <div className="divide-y divide-slate-50">
+                            {activities.map((act, i) => (
+                                <div key={i} className="px-8 py-6 flex items-center justify-between hover:bg-slate-50/50 transition-colors group">
+                                    <div className="flex items-center gap-5">
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${act.type === 'expense_added' ? 'bg-rose-50 text-rose-600' :
+                                            act.type === 'land_value_updated' ? 'bg-emerald-50 text-emerald-600' :
+                                                act.type === 'profit_added' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'
+                                            }`}>
+                                            {act.type === 'expense_added' ? <Minus size={20} /> : <Plus size={20} />}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-black text-slate-900 uppercase italic tracking-tight">{act.type.replace(/_/g, ' ')}</p>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                                                {new Date(act.created_at || act.date).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                             </p>
                                         </div>
                                     </div>
-                                    <button onClick={() => setShowModal(false)} className="p-3 hover:bg-slate-50 rounded-full transition-colors border border-slate-100">
-                                        <X className="w-5 h-5 text-slate-400" />
-                                    </button>
+                                    {act.amount > 0 && (
+                                        <div className="text-right">
+                                            <p className={`text-lg font-black italic ${act.type === 'expense_added' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                                {act.type === 'expense_added' ? '-' : '+'}{formatCurrency(act.amount)}
+                                            </p>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Synced</p>
+                                        </div>
+                                    )}
                                 </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
 
-                                <form onSubmit={handleModalSubmit} className="space-y-8">
-                                    {modalConfig.type === 'phase' ? (
-                                        <div className="space-y-10 py-4">
-                                            {['p1', 'p2', 'p3'].map((p, idx) => (
-                                                <div key={p} className="space-y-4">
-                                                    <div className="flex justify-between items-end">
-                                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phase {idx + 1} Completion</label>
-                                                        <span className="text-xl font-black text-slate-900 italic">{phaseInputs[p]}%</span>
-                                                    </div>
-                                                    <div className="relative h-4 bg-slate-100 rounded-full overflow-hidden cursor-pointer"
-                                                        onClick={(e) => {
-                                                            const rect = e.currentTarget.getBoundingClientRect();
-                                                            const x = e.clientX - rect.left;
-                                                            const val = Math.min(100, Math.max(0, Math.round((x / rect.width) * 100)));
-                                                            setPhaseInputs(prev => ({ ...prev, [p]: val }));
-                                                        }}>
-                                                        <div
-                                                            className="absolute inset-y-0 left-0 bg-slate-900 transition-all duration-300 rounded-full"
-                                                            style={{ width: `${phaseInputs[p]}%` }}
-                                                        />
-                                                    </div>
+            {/* CEO ACTION MODAL */}
+            {showModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => !submitting && setShowModal(false)} />
+                    <div className="bg-white rounded-[40px] w-full max-w-lg overflow-hidden relative shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 border border-slate-100">
+                        <div className="p-10">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <h3 className="text-2xl font-black text-slate-900 italic uppercase tracking-tight">{modalConfig.title}</h3>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
+                                            Target Asset: {fundState.fundName}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setShowModal(false)} className="p-3 hover:bg-slate-50 rounded-full transition-colors border border-slate-100">
+                                    <X className="w-5 h-5 text-slate-400" />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleModalSubmit} className="space-y-8">
+                                {modalConfig.type === 'phase' ? (
+                                    <div className="space-y-10 py-4">
+                                        {['p1', 'p2', 'p3'].map((p, idx) => (
+                                            <div key={p} className="space-y-4">
+                                                <div className="flex justify-between items-end">
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phase {idx + 1} Completion</label>
+                                                    <span className="text-xl font-black text-slate-900 italic">{phaseInputs[p]}%</span>
                                                 </div>
-                                            ))}
-                                            <div className="space-y-2 pt-4 border-t border-slate-50">
-                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Adjustment Effective Date</label>
-                                                <input
-                                                    type="date"
-                                                    value={phaseInputs.date}
-                                                    onChange={(e) => setPhaseInputs(prev => ({ ...prev, date: e.target.value }))}
-                                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-900 uppercase text-xs tracking-widest"
-                                                />
+                                                <div className="relative h-4 bg-slate-100 rounded-full overflow-hidden cursor-pointer"
+                                                    onClick={(e) => {
+                                                        const rect = e.currentTarget.getBoundingClientRect();
+                                                        const x = e.clientX - rect.left;
+                                                        const val = Math.min(100, Math.max(0, Math.round((x / rect.width) * 100)));
+                                                        setPhaseInputs(prev => ({ ...prev, [p]: val }));
+                                                    }}>
+                                                    <div
+                                                        className="absolute inset-y-0 left-0 bg-slate-900 transition-all duration-300 rounded-full"
+                                                        style={{ width: `${phaseInputs[p]}%` }}
+                                                    />
+                                                </div>
                                             </div>
+                                        ))}
+                                        <div className="space-y-2 pt-4 border-t border-slate-50">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Adjustment Effective Date</label>
+                                            <input
+                                                type="date"
+                                                value={phaseInputs.date}
+                                                onChange={(e) => setPhaseInputs(prev => ({ ...prev, date: e.target.value }))}
+                                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-900 uppercase text-xs tracking-widest"
+                                            />
                                         </div>
-                                    ) : modalConfig.type === 'expense' ? (
-                                        <div className="space-y-6">
+                                    </div>
+                                ) : modalConfig.type === 'expense' ? (
+                                    <div className="space-y-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Expense Identification</label>
+                                            <input
+                                                type="text"
+                                                value={expenseForm.title}
+                                                onChange={(e) => setExpenseForm({ ...expenseForm, title: e.target.value })}
+                                                placeholder="e.g. INFRASTRUCTURE_SURVEY_01"
+                                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-emerald-500/20 font-black text-slate-900 uppercase italic placeholder:text-slate-300"
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Expense Identification</label>
-                                                <input
-                                                    type="text"
-                                                    value={expenseForm.title}
-                                                    onChange={(e) => setExpenseForm({ ...expenseForm, title: e.target.value })}
-                                                    placeholder="e.g. INFRASTRUCTURE_SURVEY_01"
-                                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-emerald-500/20 font-black text-slate-900 uppercase italic placeholder:text-slate-300"
-                                                />
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quantum (INR)</label>
-                                                    <div className="relative">
-                                                        <span className="absolute left-6 top-5 text-slate-400 font-black italic">₹</span>
-                                                        <input
-                                                            type="number"
-                                                            value={expenseForm.amount}
-                                                            onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-10 pr-6 py-5 outline-none focus:ring-2 focus:ring-emerald-500/20 font-black text-slate-900 italic text-xl"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Execution Date</label>
-                                                    <input
-                                                        type="date"
-                                                        value={expenseForm.date}
-                                                        onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
-                                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-900 uppercase text-xs tracking-widest"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Asset Category</label>
-                                                    <select
-                                                        value={expenseForm.category}
-                                                        onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
-                                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-emerald-500/20 font-black text-slate-900 uppercase italic text-xs tracking-wider appearance-none"
-                                                    >
-                                                        {EXPENSE_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                                                    </select>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Development Phase</label>
-                                                    <select
-                                                        value={expenseForm.phase}
-                                                        onChange={(e) => setExpenseForm({ ...expenseForm, phase: e.target.value })}
-                                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-emerald-500/20 font-black text-slate-900 uppercase italic text-xs tracking-wider appearance-none"
-                                                    >
-                                                        <option value={1}>PHASE 01</option>
-                                                        <option value={2}>PHASE 02</option>
-                                                        <option value={3}>PHASE 03</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : modalConfig.type === 'roadmap' ? (
-                                        <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
-                                            {roadmapForm.map((step, idx) => (
-                                                <div key={idx} className="p-5 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-6 h-6 rounded-full bg-slate-900 text-white text-[10px] flex items-center justify-center font-black">
-                                                            {idx + 1}
-                                                        </div>
-                                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Roadmap Point {idx + 1}</h4>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <div className="space-y-1">
-                                                            <label className="text-[8px] font-black text-slate-400 uppercase">Phase Name</label>
-                                                            <input
-                                                                value={step.phase}
-                                                                onChange={(e) => {
-                                                                    const newRoadmap = [...roadmapForm];
-                                                                    newRoadmap[idx].phase = e.target.value;
-                                                                    setRoadmapForm(newRoadmap);
-                                                                }}
-                                                                className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-[11px] font-black italic uppercase outline-none focus:ring-1 focus:ring-emerald-500"
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <label className="text-[8px] font-black text-slate-400 uppercase">Schedule/Date</label>
-                                                            <div className="relative group">
-                                                                <Calendar size={12} className="absolute left-3 top-3.5 text-slate-400 group-focus-within:text-emerald-500 transition-colors z-10" />
-                                                                <input
-                                                                    type="date"
-                                                                    value={/^\d{4}-\d{2}-\d{2}$/.test(step.date) ? step.date : ''}
-                                                                    onChange={(e) => {
-                                                                        const newRoadmap = [...roadmapForm];
-                                                                        newRoadmap[idx].date = e.target.value;
-                                                                        setRoadmapForm(newRoadmap);
-                                                                    }}
-                                                                    className="w-full bg-white border border-slate-100 rounded-xl pl-9 pr-4 py-3 text-[11px] font-black uppercase outline-none focus:ring-1 focus:ring-emerald-500 appearance-none relative"
-                                                                />
-                                                                {!/^\d{4}-\d{2}-\d{2}$/.test(step.date) && (
-                                                                    <div className="absolute inset-0 pl-9 pr-10 py-3 pointer-events-none flex items-center">
-                                                                        <span className="text-[11px] font-black text-slate-900 uppercase italic">{step.date}</span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <label className="text-[8px] font-black text-slate-400 uppercase">Current Status</label>
-                                                        <select
-                                                            value={step.status}
-                                                            onChange={(e) => {
-                                                                const newRoadmap = [...roadmapForm];
-                                                                newRoadmap[idx].status = e.target.value;
-                                                                setRoadmapForm(newRoadmap);
-                                                            }}
-                                                            className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-[11px] font-black italic uppercase outline-none focus:ring-1 focus:ring-emerald-500 appearance-none"
-                                                        >
-                                                            <option value="Planned">Planned</option>
-                                                            <option value="Active Stage">Active Stage</option>
-                                                            <option value="Completed">Completed</option>
-                                                            <option value="Delayed">Delayed</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : modalConfig.type === 'dates' ? (
-                                        <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
-                                            <div className="grid grid-cols-2 gap-4 bg-slate-100 p-4 rounded-3xl">
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Entry Date</label>
-                                                    <input
-                                                        type="date"
-                                                        value={datesForm.entry}
-                                                        onChange={(e) => setDatesForm({ ...datesForm, entry: e.target.value })}
-                                                        className="w-full bg-white border border-slate-100 rounded-2xl px-5 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-900 uppercase text-xs tracking-widest"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Exit Date</label>
-                                                    <input
-                                                        type="date"
-                                                        value={datesForm.exit}
-                                                        onChange={(e) => setDatesForm({ ...datesForm, exit: e.target.value })}
-                                                        className="w-full bg-white border border-slate-100 rounded-2xl px-5 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-900 uppercase text-xs tracking-widest"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-4 pt-2">
-                                                {/* Phase 1 Dates */}
-                                                <div className="p-4 bg-rose-50/50 border border-rose-100 rounded-3xl space-y-4">
-                                                    <h4 className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Phase 1: Acquisition</h4>
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <div className="space-y-1">
-                                                            <label className="text-[8px] font-black text-slate-400 uppercase">Start Date</label>
-                                                            <input type="date" value={datesForm.p1Start} onChange={(e) => setDatesForm({ ...datesForm, p1Start: e.target.value })} className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-[10px]" />
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <label className="text-[8px] font-black text-slate-400 uppercase">End Date</label>
-                                                            <input type="date" value={datesForm.p1End} onChange={(e) => setDatesForm({ ...datesForm, p1End: e.target.value })} className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-[10px]" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Phase 2 Dates */}
-                                                <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-3xl space-y-4">
-                                                    <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Phase 2: Development</h4>
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <div className="space-y-1">
-                                                            <label className="text-[8px] font-black text-slate-400 uppercase">Start Date</label>
-                                                            <input type="date" value={datesForm.p2Start} onChange={(e) => setDatesForm({ ...datesForm, p2Start: e.target.value })} className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-[10px]" />
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <label className="text-[8px] font-black text-slate-400 uppercase">End Date</label>
-                                                            <input type="date" value={datesForm.p2End} onChange={(e) => setDatesForm({ ...datesForm, p2End: e.target.value })} className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-[10px]" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Phase 3 Dates */}
-                                                <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-3xl space-y-4">
-                                                    <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Phase 3: Operations</h4>
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <div className="space-y-1">
-                                                            <label className="text-[8px] font-black text-slate-400 uppercase">Start Date</label>
-                                                            <input type="date" value={datesForm.p3Start} onChange={(e) => setDatesForm({ ...datesForm, p3Start: e.target.value })} className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-[10px]" />
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <label className="text-[8px] font-black text-slate-400 uppercase">End Date</label>
-                                                            <input type="date" value={datesForm.p3End} onChange={(e) => setDatesForm({ ...datesForm, p3End: e.target.value })} className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-[10px]" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-6">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quantum of Adjustment (INR)</label>
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quantum (INR)</label>
                                                 <div className="relative">
-                                                    <div className="absolute left-6 top-6 text-slate-300 font-black italic text-2xl">₹</div>
+                                                    <span className="absolute left-6 top-5 text-slate-400 font-black italic">₹</span>
                                                     <input
-                                                        autoFocus
                                                         type="number"
-                                                        value={modalConfig.value}
-                                                        onChange={(e) => setModalConfig(prev => ({ ...prev, value: e.target.value }))}
-                                                        placeholder="0.00"
-                                                        className="w-full bg-slate-50 border border-slate-100 rounded-3xl pl-12 pr-6 py-6 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-black text-3xl text-slate-900 italic"
+                                                        value={expenseForm.amount}
+                                                        onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-10 pr-6 py-5 outline-none focus:ring-2 focus:ring-emerald-500/20 font-black text-slate-900 italic text-xl"
                                                     />
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Record Date</label>
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Execution Date</label>
                                                 <input
                                                     type="date"
-                                                    value={modalConfig.date}
-                                                    onChange={(e) => setModalConfig(prev => ({ ...prev, date: e.target.value }))}
+                                                    value={expenseForm.date}
+                                                    onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
                                                     className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-900 uppercase text-xs tracking-widest"
                                                 />
                                             </div>
                                         </div>
-                                    )}
 
-                                    <PrimaryButton
-                                        className="w-full py-6 rounded-[24px] flex items-center justify-center gap-3 bg-slate-900 hover:bg-black text-white shadow-xl shadow-slate-900/20 group transition-all"
-                                        disabled={submitting}
-                                    >
-                                        {submitting ? (
-                                            <Loader2 className="w-6 h-6 animate-spin" />
-                                        ) : (
-                                            <>
-                                                <CheckCircle2 className="w-6 h-6 group-hover:scale-110 transition-transform text-emerald-400" />
-                                                <span className="font-black italic uppercase tracking-[0.2em] text-sm">Commit to Blockchain Ledger</span>
-                                            </>
-                                        )}
-                                    </PrimaryButton>
-                                </form>
-                            </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Asset Category</label>
+                                                <select
+                                                    value={expenseForm.category}
+                                                    onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
+                                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-emerald-500/20 font-black text-slate-900 uppercase italic text-xs tracking-wider appearance-none"
+                                                >
+                                                    {EXPENSE_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Development Phase</label>
+                                                <select
+                                                    value={expenseForm.phase}
+                                                    onChange={(e) => setExpenseForm({ ...expenseForm, phase: e.target.value })}
+                                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-emerald-500/20 font-black text-slate-900 uppercase italic text-xs tracking-wider appearance-none"
+                                                >
+                                                    <option value={1}>PHASE 01</option>
+                                                    <option value={2}>PHASE 02</option>
+                                                    <option value={3}>PHASE 03</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : modalConfig.type === 'roadmap' ? (
+                                    <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                                        {roadmapForm.map((step, idx) => (
+                                            <div key={idx} className="p-5 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-6 h-6 rounded-full bg-slate-900 text-white text-[10px] flex items-center justify-center font-black">
+                                                        {idx + 1}
+                                                    </div>
+                                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Roadmap Point {idx + 1}</h4>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-slate-400 uppercase">Phase Name</label>
+                                                        <input
+                                                            value={step.phase}
+                                                            onChange={(e) => {
+                                                                const newRoadmap = [...roadmapForm];
+                                                                newRoadmap[idx].phase = e.target.value;
+                                                                setRoadmapForm(newRoadmap);
+                                                            }}
+                                                            className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-[11px] font-black italic uppercase outline-none focus:ring-1 focus:ring-emerald-500"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-slate-400 uppercase">Schedule/Date</label>
+                                                        <div className="relative group">
+                                                            <Calendar size={12} className="absolute left-3 top-3.5 text-slate-400 group-focus-within:text-emerald-500 transition-colors z-10" />
+                                                            <input
+                                                                type="date"
+                                                                value={/^\d{4}-\d{2}-\d{2}$/.test(step.date) ? step.date : ''}
+                                                                onChange={(e) => {
+                                                                    const newRoadmap = [...roadmapForm];
+                                                                    newRoadmap[idx].date = e.target.value;
+                                                                    setRoadmapForm(newRoadmap);
+                                                                }}
+                                                                className={`w-full bg-white border border-slate-100 rounded-xl pl-9 pr-4 py-3 text-[11px] font-black uppercase outline-none focus:ring-1 focus:ring-emerald-500 appearance-none relative ${!/^\d{4}-\d{2}-\d{2}$/.test(step.date) ? 'text-transparent' : 'text-slate-900'}`}
+                                                            />
+                                                            {!/^\d{4}-\d{2}-\d{2}$/.test(step.date) && (
+                                                                <div className="absolute inset-0 pl-9 pr-10 py-3 pointer-events-none flex items-center">
+                                                                    <span className="text-[11px] font-black text-slate-900 uppercase italic">{step.date}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-black text-slate-400 uppercase">Current Status</label>
+                                                    <select
+                                                        value={step.status}
+                                                        onChange={(e) => {
+                                                            const newRoadmap = [...roadmapForm];
+                                                            newRoadmap[idx].status = e.target.value;
+                                                            setRoadmapForm(newRoadmap);
+                                                        }}
+                                                        className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-[11px] font-black italic uppercase outline-none focus:ring-1 focus:ring-emerald-500 appearance-none"
+                                                    >
+                                                        <option value="Planned">Planned</option>
+                                                        <option value="Active Stage">Active Stage</option>
+                                                        <option value="Completed">Completed</option>
+                                                        <option value="Delayed">Delayed</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : modalConfig.type === 'dates' ? (
+                                    <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                                        <div className="grid grid-cols-2 gap-4 bg-slate-100 p-4 rounded-3xl">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Entry Date</label>
+                                                <input
+                                                    type="date"
+                                                    value={datesForm.entry}
+                                                    onChange={(e) => setDatesForm({ ...datesForm, entry: e.target.value })}
+                                                    className="w-full bg-white border border-slate-100 rounded-2xl px-5 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-900 uppercase text-xs tracking-widest"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Exit Date</label>
+                                                <input
+                                                    type="date"
+                                                    value={datesForm.exit}
+                                                    onChange={(e) => setDatesForm({ ...datesForm, exit: e.target.value })}
+                                                    className="w-full bg-white border border-slate-100 rounded-2xl px-5 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-900 uppercase text-xs tracking-widest"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4 pt-2">
+                                            {/* Phase 1 Dates */}
+                                            <div className="p-4 bg-rose-50/50 border border-rose-100 rounded-3xl space-y-4">
+                                                <h4 className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Phase 1: Acquisition</h4>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-slate-400 uppercase">Start Date</label>
+                                                        <input type="date" value={datesForm.p1Start} onChange={(e) => setDatesForm({ ...datesForm, p1Start: e.target.value })} className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-[10px]" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-slate-400 uppercase">End Date</label>
+                                                        <input type="date" value={datesForm.p1End} onChange={(e) => setDatesForm({ ...datesForm, p1End: e.target.value })} className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-[10px]" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Phase 2 Dates */}
+                                            <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-3xl space-y-4">
+                                                <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Phase 2: Development</h4>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-slate-400 uppercase">Start Date</label>
+                                                        <input type="date" value={datesForm.p2Start} onChange={(e) => setDatesForm({ ...datesForm, p2Start: e.target.value })} className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-[10px]" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-slate-400 uppercase">End Date</label>
+                                                        <input type="date" value={datesForm.p2End} onChange={(e) => setDatesForm({ ...datesForm, p2End: e.target.value })} className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-[10px]" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Phase 3 Dates */}
+                                            <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-3xl space-y-4">
+                                                <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Phase 3: Operations</h4>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-slate-400 uppercase">Start Date</label>
+                                                        <input type="date" value={datesForm.p3Start} onChange={(e) => setDatesForm({ ...datesForm, p3Start: e.target.value })} className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-[10px]" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-slate-400 uppercase">End Date</label>
+                                                        <input type="date" value={datesForm.p3End} onChange={(e) => setDatesForm({ ...datesForm, p3End: e.target.value })} className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-[10px]" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : modalConfig.type === 'manager' ? (
+                                    <div className="space-y-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Manager Full Name</label>
+                                            <input
+                                                type="text"
+                                                value={managerForm.name}
+                                                onChange={(e) => setManagerForm({ ...managerForm, name: e.target.value })}
+                                                placeholder="e.g. John Doe"
+                                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-emerald-500/20 font-black text-slate-900 uppercase italic placeholder:text-slate-300"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</label>
+                                                <input
+                                                    type="email"
+                                                    value={managerForm.email}
+                                                    onChange={(e) => setManagerForm({ ...managerForm, email: e.target.value })}
+                                                    placeholder="manager@vriksha.ai"
+                                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-emerald-500/20 font-black text-slate-900 placeholder:text-slate-300 lowercase"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone Number</label>
+                                                <input
+                                                    type="text"
+                                                    value={managerForm.phone}
+                                                    onChange={(e) => setManagerForm({ ...managerForm, phone: e.target.value })}
+                                                    placeholder="+91 9876543210"
+                                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-emerald-500/20 font-black text-slate-900 placeholder:text-slate-300"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Assign Fund (Optional)</label>
+                                            <select
+                                                value={managerForm.assigned_fund}
+                                                onChange={(e) => setManagerForm({ ...managerForm, assigned_fund: e.target.value })}
+                                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-emerald-500/20 font-black text-slate-900 uppercase italic text-xs tracking-wider appearance-none"
+                                            >
+                                                <option value="">Unassigned</option>
+                                                {availableFunds.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                                            <div className="flex gap-3">
+                                                <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                                                <p className="text-[10px] font-bold text-amber-800 leading-relaxed uppercase">
+                                                    Note: After onboarding, the manager must use the
+                                                    <span className="text-amber-900 mx-1 underline">Sign Up</span>
+                                                    page with this same email to set their own password.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : modalConfig.type === 'asset' ? (
+                                    <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fund Name</label>
+                                            <input
+                                                type="text"
+                                                value={newAssetForm.name}
+                                                onChange={(e) => setNewAssetForm({ ...newAssetForm, name: e.target.value })}
+                                                placeholder="e.g. Royal Teak Garden"
+                                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-emerald-500/20 font-black text-slate-900 uppercase italic"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Location</label>
+                                                <input type="text" value={newAssetForm.location} onChange={(e) => setNewAssetForm({ ...newAssetForm, location: e.target.value })} placeholder="City, State" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold text-slate-900 uppercase text-xs" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Capital (INR)</label>
+                                                <input type="number" value={newAssetForm.target_amount} onChange={(e) => setNewAssetForm({ ...newAssetForm, target_amount: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none font-black text-slate-900" />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Units/Stocks</label>
+                                                <input type="number" value={newAssetForm.total_stocks} onChange={(e) => setNewAssetForm({ ...newAssetForm, total_stocks: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none font-black text-slate-900" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Stock Price (INR)</label>
+                                                <input type="number" value={newAssetForm.stock_price} onChange={(e) => setNewAssetForm({ ...newAssetForm, stock_price: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none font-black text-slate-900" />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Start Date</label>
+                                                <input type="date" value={newAssetForm.entry_date} onChange={(e) => setNewAssetForm({ ...newAssetForm, entry_date: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold text-slate-900 uppercase text-xs" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Expected Maturity</label>
+                                                <input type="date" value={newAssetForm.exit_date} onChange={(e) => setNewAssetForm({ ...newAssetForm, exit_date: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none font-bold text-slate-900 uppercase text-xs" />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Land Opening Value (INR)</label>
+                                            <input type="number" value={newAssetForm.land_value} onChange={(e) => setNewAssetForm({ ...newAssetForm, land_value: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none font-black text-slate-900" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Blueprint/Image URL</label>
+                                            <input type="text" value={newAssetForm.blueprint_url} onChange={(e) => setNewAssetForm({ ...newAssetForm, blueprint_url: e.target.value })} placeholder="https://..." className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none text-xs text-slate-600" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Asset Description</label>
+                                            <textarea value={newAssetForm.description} onChange={(e) => setNewAssetForm({ ...newAssetForm, description: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none text-xs text-slate-900 min-h-[100px]" />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quantum of Adjustment (INR)</label>
+                                            <div className="relative">
+                                                <div className="absolute left-6 top-6 text-slate-300 font-black italic text-2xl">₹</div>
+                                                <input
+                                                    autoFocus
+                                                    type="number"
+                                                    value={modalConfig.value}
+                                                    onChange={(e) => setModalConfig(prev => ({ ...prev, value: e.target.value }))}
+                                                    placeholder="0.00"
+                                                    className="w-full bg-slate-50 border border-slate-100 rounded-3xl pl-12 pr-6 py-6 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-black text-3xl text-slate-900 italic"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Record Date</label>
+                                            <input
+                                                type="date"
+                                                value={modalConfig.date}
+                                                onChange={(e) => setModalConfig(prev => ({ ...prev, date: e.target.value }))}
+                                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-900 uppercase text-xs tracking-widest"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <PrimaryButton
+                                    className="w-full py-6 rounded-[24px] flex items-center justify-center gap-3 bg-slate-900 hover:bg-black text-white shadow-xl shadow-slate-900/20 group transition-all"
+                                    disabled={submitting}
+                                >
+                                    {submitting ? (
+                                        <Loader2 className="w-6 h-6 animate-spin" />
+                                    ) : (
+                                        <>
+                                            <CheckCircle2 className="w-6 h-6 group-hover:scale-110 transition-transform text-emerald-400" />
+                                            <span className="font-black italic uppercase tracking-[0.2em] text-sm">Commit to Blockchain Ledger</span>
+                                        </>
+                                    )}
+                                </PrimaryButton>
+                            </form>
                         </div>
                     </div>
-                )
-            }
-        </div >
+                </div>
+            )}
+        </div>
     );
 };
 

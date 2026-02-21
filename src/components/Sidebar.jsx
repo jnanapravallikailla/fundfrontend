@@ -18,7 +18,7 @@ const menuItems = [
 ];
 
 export const Sidebar = () => {
-    const { isCEO } = useAuth();
+    const { isCEO, isManager } = useAuth();
 
     return (
         <aside className="hidden md:flex w-64 bg-white border-r border-slate-200 h-screen sticky top-0 flex-col">
@@ -49,12 +49,14 @@ export const Sidebar = () => {
                 ))}
             </nav>
 
-            {isCEO && (
+            {(isCEO || isManager) && (
                 <div className="p-4 border-t border-slate-100">
                     <div className="bg-emerald-600 text-white p-4 rounded-xl shadow-md">
                         <p className="text-xs uppercase font-bold tracking-wider opacity-80">Access Level</p>
-                        <p className="font-bold">Admin Panel</p>
-                        <p className="text-xs mt-2 opacity-90">Manage investments & track progress live.</p>
+                        <p className="font-bold">{isCEO ? 'Admin Panel' : 'Manager Panel'}</p>
+                        <p className="text-xs mt-2 opacity-90">
+                            {isCEO ? 'Manage investments & track progress live.' : 'Oversee assigned asset data updates.'}
+                        </p>
                     </div>
                 </div>
             )}
