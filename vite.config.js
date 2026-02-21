@@ -11,6 +11,15 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['logo.svg'],
+      workbox: {
+        // Raise the limit to cover Cesium.js (5.73 MB)
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
+        // Don't try to precache huge Cesium assets in the service worker
+        globIgnores: [
+          '**/cesium/**',
+          '**/*.wasm',
+        ],
+      },
       manifest: {
         name: 'Vriksha Assets',
         short_name: 'Vriksha',
