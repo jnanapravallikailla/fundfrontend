@@ -34,7 +34,7 @@ import { ChartCard } from '../components/ChartCard';
 import FarmMap from '../components/FarmMap';
 import { supabase } from '../supabaseClient';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://web-production-53688.up.railway.app/api';
 
 const formatCurrency = (value) =>
     new Intl.NumberFormat('en-IN', {
