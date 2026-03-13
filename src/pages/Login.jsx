@@ -42,75 +42,92 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
-            <div className="max-w-md w-full animate-in fade-in zoom-in duration-700">
-                <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-2xl relative overflow-hidden">
-                    {/* Decorative element */}
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-50 rounded-full blur-3xl opacity-50"></div>
+        <div className="min-h-screen bg-[#F9FAF8] flex items-center justify-center p-6 relative overflow-hidden">
+            {/* Background Effects */}
+            <div className="absolute top-0 right-0 w-1/2 h-full bg-[#10B981]/10 blur-[150px] pointer-events-none z-0" />
+            <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-[#10B981]/5 blur-[150px] pointer-events-none z-0" />
 
-                    <div className="flex flex-col items-center text-center space-y-6 relative">
-                        <div className="p-4 bg-emerald-600 rounded-3xl shadow-xl shadow-emerald-200">
-                            <Sprout className="w-10 h-10 text-white" />
-                        </div>
+            <div className="max-w-md w-full animate-in fade-in zoom-in duration-700 relative z-10">
+                
+                {/* Logo Area */}
+                <div className="flex justify-center mb-8 w-full">
+                    <img onClick={() => navigate('/')} src="/logo.png" alt="Greenhaven" className="h-24 md:h-28 w-auto object-contain cursor-pointer transition-transform hover:scale-105" />
+                </div>
+
+                <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[2rem] border border-white shadow-[0_20px_60px_-15px_rgba(26,48,43,0.1)] relative overflow-hidden">
+                    {/* Decorative Top Line */}
+                    <div className="absolute top-0 left-1/4 right-1/4 h-[2px] bg-gradient-to-r from-transparent via-[#10B981] to-transparent opacity-80"></div>
+
+                    <div className="flex flex-col text-center space-y-8 relative">
+                        
                         <div>
-                            <h1 className="text-3xl font-black text-slate-900 leading-tight">
-                                {isSignUp ? 'Join FarmFund' : 'Welcome Back'}
+                            <h1 className="text-3xl font-black text-[#1A302B] leading-tight uppercase tracking-tight">
+                                {isSignUp ? 'Join Greenhaven' : 'Welcome Back'}
+                                <span className="text-[#10B981]">.</span>
                             </h1>
-                            <p className="text-slate-500 mt-2 text-sm italic">
-                                {isSignUp ? 'Create your account to start investing' : 'Access your estate investment dashboard'}
+                            <p className="text-slate-500 mt-2 text-xs font-bold uppercase tracking-widest">
+                                {isSignUp ? 'Create your platform account' : 'Access your dashboard'}
                             </p>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="w-full space-y-6 pt-4">
+                        <form onSubmit={handleSubmit} className="w-full space-y-6">
                             <div className="space-y-4">
                                 <div className="relative group">
-                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-[#10B981] transition-colors" />
                                     <input
                                         type="email"
                                         placeholder="Email Address"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-medium"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-4 outline-none text-[#1A302B] placeholder:text-slate-400 focus:ring-4 focus:ring-[#10B981]/10 focus:border-[#10B981] transition-all font-medium"
                                         required
                                     />
                                 </div>
                                 <div className="relative group">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-[#10B981] transition-colors" />
                                     <input
                                         type="password"
                                         placeholder="Password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-medium"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-4 outline-none text-[#1A302B] placeholder:text-slate-400 focus:ring-4 focus:ring-[#10B981]/10 focus:border-[#10B981] transition-all font-medium"
                                         required
                                     />
                                 </div>
                             </div>
 
                             {error && (
-                                <div className="bg-rose-50 border border-rose-100 text-rose-600 p-4 rounded-xl text-sm font-bold">
+                                <div className="bg-rose-50 border border-rose-100 text-rose-600 p-4 rounded-xl text-sm font-bold flex items-center justify-center">
                                     {error}
                                 </div>
                             )}
 
-                            <PrimaryButton
+                            <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full py-5 text-lg font-black flex items-center justify-center gap-3 shadow-xl shadow-emerald-100 mt-2"
+                                className="w-full bg-[#10B981] hover:bg-[#1A302B] text-white disabled:opacity-50 disabled:cursor-not-allowed py-4 rounded-2xl text-sm uppercase tracking-widest font-black transition-all flex items-center justify-center gap-3 shadow-[0_10px_20px_-10px_rgba(16,185,129,0.5)] hover:shadow-xl"
+                                style={{ transform: "scale(1)", transition: "all 0.3s ease" }}
+                                onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.98)"}
+                                onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
                             >
-                                {loading ? 'Processing...' : (isSignUp ? 'Create Account' : 'Sign In to Dashboard')}
-                                {!loading && <ArrowRight className="w-5 h-5" />}
-                            </PrimaryButton>
+                                {loading ? 'Processing...' : (isSignUp ? 'Create Account' : 'Sign In')}
+                                {!loading && <ArrowRight className="w-4 h-4" />}
+                            </button>
                         </form>
 
-                        <button
-                            onClick={() => setIsSignUp(!isSignUp)}
-                            disabled={loading}
-                            className="text-sm font-bold text-slate-500 hover:text-emerald-600 transition-colors disabled:opacity-50"
-                        >
-                            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
-                        </button>
-
+                        <div className="pt-2 border-t border-slate-100">
+                            <button
+                                onClick={() => setIsSignUp(!isSignUp)}
+                                disabled={loading}
+                                className="text-xs font-bold text-slate-500 hover:text-[#1A302B] uppercase tracking-wider transition-colors disabled:opacity-50"
+                            >
+                                {isSignUp ? (
+                                    <span>Already have an account? <span className="text-[#10B981]">Sign In</span></span>
+                                ) : (
+                                    <span>Don't have an account? <span className="text-[#10B981]">Sign Up</span></span>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

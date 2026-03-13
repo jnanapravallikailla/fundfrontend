@@ -28,7 +28,7 @@ const ProtectedRoute = ({ children }) => {
     const { user, loading } = useAuth();
 
     if (loading) return <LoadingFallback />;
-    if (!user) return <Navigate to="/login" replace />;
+    if (!user) return <Navigate to="/" replace />;
 
     return <AppLayout>{children}</AppLayout>;
 };
